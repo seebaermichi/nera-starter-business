@@ -1,6 +1,6 @@
 {
     "name": "@nera-static/starter-business",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "A ready-to-edit Nera site for a small business on @nera-static/theme-business: home, about, services, opening hours, a contact form, navigation, responsive images, social links, a sitemap and imprint and privacy placeholders. One small script for the contact form.",
     "type": "module",
     "scripts": {
@@ -49,7 +49,7 @@
         "@nera-static/plugin-navigation": "^3.1.1",
         "@nera-static/plugin-sitemap": "^1.1.0",
         "@nera-static/plugin-social-media-links": "^2.3.0",
-        "@nera-static/theme-business": "^1.0.1"
+        "@nera-static/theme-business": "^1.0.2"
     },
     "devDependencies": {
         "@nera-static/nera": "^1.13.0",
