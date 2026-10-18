@@ -103,4 +103,5 @@ file named in steps 1 to 5 marks its placeholders as such.
    the address the contact form writes to.
 4. Replace the social link in `config/social-media-links.yaml`.
 5. Replace `pages/imprint.md` and `pages/privacy.md` with your own legal texts.
-6. Replace the sample copy of the pages and `theme/assets/images/hero.jpg`.
+6. Replace the sample copy of the pages, `theme/assets/images/hero.jpg` and
+   the grey placeholder icon `theme/assets/favicon.ico` with your own.

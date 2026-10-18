@@ -17,4 +17,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   `theme/views/vendor/`: the published templates of plugin-contact-form, plugin-images, plugin-navigation and plugin-social-media-links (without `fontawesome-cdn-link.pug`, which loads a CDN), unchanged.
 -   `theme/assets/js/contact-form.js`: the client script plugin-contact-form 1.1.1 publishes; it opens the visitor's own mail program, nothing is sent by the site.
 -   `pages/index.md` (home with the hero and three service cards), `about.md`, `services.md`, `opening-hours.md` and `contact.md` (the form, the address and the opening hours); `theme/assets/images/hero.jpg` for the hero.
+-   `theme/assets/favicon.ico`: a small grey placeholder icon, built to `public/favicon.ico` so a browser's default request finds a file; the README's First steps say to replace it.
 -   `pages/imprint.md` and `pages/privacy.md`: clearly marked placeholders citing § 5 DDG and the TDDDG, to be replaced by the site owner's own legal texts.

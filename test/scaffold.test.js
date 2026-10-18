@@ -140,7 +140,7 @@ describe('nera new --starter <this repo>', () => {
         for (const placeholder of [
             'origin: https://example.com', '`business:` in `config/app.yaml`',
             'recipient: hello@example.com', 'config/social-media-links.yaml',
-            'pages/imprint.md', 'pages/privacy.md',
+            'pages/imprint.md', 'pages/privacy.md', 'theme/assets/favicon.ico',
         ]) {
             expect(steps, placeholder).toContain(placeholder)
         }
@@ -167,6 +167,15 @@ describe('nera new --starter <this repo>', () => {
             else expect(sitemap, page).toContain(loc)
         }
         expect(read(site, 'public/robots.txt')).toContain('Sitemap: https://example.com/sitemap.xml')
+    })
+
+    it('serves the placeholder favicon, so the browser\'s /favicon.ico request finds a file', () => {
+        const built = fs.readFileSync(path.join(site, 'public', 'favicon.ico'))
+        expect(built.equals(fs.readFileSync(path.join(root, 'theme', 'assets', 'favicon.ico')))).toBe(true)
+        // An ICO header: reserved 0, type 1 (icon), at least one image.
+        expect(built.readUInt16LE(0)).toBe(0)
+        expect(built.readUInt16LE(2)).toBe(1)
+        expect(built.readUInt16LE(4)).toBeGreaterThan(0)
     })
 
     it('fills the seams: navigation, hero picture, social links, address and opening hours', () => {
