@@ -1,0 +1,70 @@
+lang: en
+name: Brot & Zeit
+robots: index,follow
+theme: business
+# Replace with your site's real address before you deploy: the sitemap needs
+# absolute URLs, and without `origin` it is not written.
+origin: https://example.com
+
+# The business's facts, read by the address, the opening hours and the footer.
+# Placeholders: replace every value before you deploy. There is no `email`:
+# the contact form takes its place (config/contact-form.yaml).
+business:
+    street: Bergstraße 12
+    postal_code: '10115'
+    city: Berlin
+    country: Germany
+    phone: '+49 30 1234567'
+    # Quote the times. A row has either `closed: true` or `opens` and `closes`;
+    # `days` and `hours_note` are translation keys (see below).
+    hours:
+        - days: Mon–Fri
+          opens: '07:00'
+          closes: '18:00'
+        - days: Sat
+          opens: '08:00'
+          closes: '14:00'
+        - days: Sun
+          closed: true
+    hours_note: Closed on public holidays.
+
+translations:
+    en:
+        # The language's own name, shown by the theme's language switch
+        language_name: English
+        # Theme texts: the English keys work as they are; after
+        # `nera new --lang <code>`, translate the copied entry
+        Skip to content: Skip to content
+        Main navigation: Main navigation
+        Language: Language
+        Legal: Legal
+        Opening hours: Opening hours
+        Closed: Closed
+        Contact details: Contact details
+        Phone: Phone
+        Email: Email
+        # footer_links labels (config/theme.yaml)
+        Imprint: Imprint
+        Privacy: Privacy
+        # opening hours: the days and the note of business.hours above
+        Mon–Fri: Mon–Fri
+        Sat: Sat
+        Sun: Sun
+        Closed on public holidays.: Closed on public holidays.
+        # plugin-navigation (the label of its simple and pipe-separated forms)
+        Navigation: Navigation
+        # plugin-contact-form (config/contact-form.yaml)
+        Message from the website: Message from the website
+        Send message: Send message
+        Please fill in all required fields.: Please fill in all required fields.
+        Please enter a valid email address.: Please enter a valid email address.
+        'Yes': 'Yes'
+        'No': 'No'
+        Your name: Your name
+        Your email: Your email
+        Message: Message
+        I have read the privacy notice: I have read the privacy notice
+        # The form's intro and consent are HTML; the consent links the
+        # privacy page of this language
+        contact_intro: We reply within one working day. For anything urgent, please call us.
+        contact_consent: 'Sending opens your own email program; nothing is sent by this website. See our <a href="/privacy.html">privacy notice</a>.'

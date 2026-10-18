@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { parse } from 'yaml'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf-8'))
@@ -119,5 +120,99 @@ describe('theme folder', () => {
         const source = path.join(root, 'node_modules/@nera-static/plugin-contact-form/views/contact-form.js')
         expect(fs.readFileSync(path.join(root, 'theme/assets/js/contact-form.js'), 'utf-8'))
             .toBe(fs.readFileSync(source, 'utf-8'))
+    })
+})
+
+/** Parses `config/<name>.yaml`. */
+function readConfig(name) {
+    return parse(fs.readFileSync(path.join(root, 'config', `${name}.yaml`), 'utf-8'))
+}
+
+/** The literal keys of every `t('…')` call in the .pug files under `dir`. */
+function literalKeys(dir) {
+    return listFiles(dir)
+        .filter((f) => f.endsWith('.pug'))
+        .flatMap((f) => [...fs.readFileSync(path.join(dir, f), 'utf-8').matchAll(/\bt\('([^']+)'\)/g)])
+        .map((match) => match[1])
+}
+
+/** The texts of config/contact-form.yaml, every one a t() key in the plugin's template. */
+function contactFormKeys(config) {
+    const keys = [
+        'subject', 'submit_label', 'error_required', 'error_email',
+        'checkbox_checked_label', 'checkbox_unchecked_label', 'intro_text', 'consent_text',
+    ].map((key) => config[key])
+    for (const field of config.fields) {
+        keys.push(field.label, ...(field.options || []).map((option) => option.label))
+        if (field.placeholder) keys.push(field.placeholder)
+    }
+    return keys
+}
+
+describe('site config', () => {
+    const appYaml = fs.readFileSync(path.join(root, 'config/app.yaml'), 'utf-8')
+    const app = parse(appYaml)
+
+    it('keeps the lines `nera new --name/--lang` edit, the theme and a translations entry', () => {
+        // setAppValue and addLangTranslations in nera-cli/src/scaffold.js are line-based.
+        expect(appYaml).toMatch(/^name: \S.*$/m)
+        expect(appYaml).toMatch(/^lang: en$/m)
+        expect(appYaml).toMatch(/^theme: business$/m)
+        expect(appYaml).toMatch(/^translations:\n {4}en:$/m)
+    })
+
+    it('fills app.business without an email, with readable opening hours', () => {
+        expect(app.business.email).toBeUndefined()
+        for (const key of ['street', 'postal_code', 'city', 'country', 'phone']) {
+            expect(typeof app.business[key], key).toBe('string')
+        }
+        // The theme shows a row only when it is closed or has both times.
+        for (const row of app.business.hours) {
+            expect(row.closed === true || (/^\d\d:\d\d$/.test(row.opens) && /^\d\d:\d\d$/.test(row.closes)), row.days)
+                .toBe(true)
+        }
+    })
+
+    it('translates every theme, plugin, footer-link and opening-hours key', () => {
+        const keys = new Set([
+            'language_name',
+            ...literalKeys(path.join(root, 'node_modules/@nera-static/theme-business/views')),
+            ...literalKeys(path.join(root, 'theme/views')),
+            ...readConfig('theme').footer_links.map((link) => link.label),
+            ...app.business.hours.map((row) => row.days),
+            app.business.hours_note,
+            ...contactFormKeys(readConfig('contact-form')),
+        ])
+        const missing = [...keys].filter((key) => typeof app.translations.en[key] !== 'string')
+        expect(missing).toEqual([])
+    })
+
+    it('links the imprint and the privacy page from the footer and the consent text', () => {
+        expect(readConfig('theme').footer_links).toEqual([
+            { label: 'Imprint', href: '/imprint.html' },
+            { label: 'Privacy', href: '/privacy.html' },
+        ])
+        expect(app.translations.en.contact_consent).toContain('href="/privacy.html"')
+    })
+
+    it('asks only for name, email, message and the privacy checkbox (plan D5)', () => {
+        const form = readConfig('contact-form')
+        expect(form.recipient).toBe('hello@example.com')
+        expect(form.fields.map((field) => [field.name, field.type])).toEqual([
+            ['name', 'text'], ['email', 'email'], ['message', 'textarea'], ['privacy', 'checkbox'],
+        ])
+        expect(form.fields.every((field) => field.required)).toBe(true)
+    })
+
+    it('configures images, navigation and social links as the theme expects', () => {
+        expect(readConfig('images')).toEqual({ eager_first: false, og: false, frontmatter_keys: ['image'] })
+        const navigation = readConfig('navigation')
+        expect(Object.keys(navigation)).toEqual(['elements'])
+        expect(navigation.elements.map((element) => element.href)).toEqual([
+            '/index.html', '/about.html', '/services.html', '/opening-hours.html', '/contact.html',
+        ])
+        const social = readConfig('social-media-links')
+        expect(social.open_in_new_tab).toBe(false)
+        expect(social.social_media_links).toHaveLength(1)
     })
 })
