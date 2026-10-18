@@ -69,3 +69,55 @@ describe('package.json starter contract', () => {
         expect(pkg.devDependencies['@nera-static/nera']).toMatch(/^\^1\.(1[3-9]|[2-9]\d)\./)
     })
 })
+
+// The plugins whose templates the starter ships as vendor copies.
+const TEMPLATE_PLUGINS = ['plugin-contact-form', 'plugin-images', 'plugin-navigation', 'plugin-social-media-links']
+
+// The seams the starter fills: §S3.2 of ROADMAP-themes.md plus the shared ones.
+const SEAMS = ['hero-media', 'card-media', 'contact-form', 'nav-main', 'footer-extra']
+
+// Loads Font Awesome from a CDN, which the privacy check would flag.
+const CDN_PARTIAL = 'fontawesome-cdn-link.pug'
+
+/** Lists the files under `dir` as paths relative to it, sorted. */
+function listFiles(dir) {
+    return fs.readdirSync(dir, { recursive: true, withFileTypes: true })
+        .filter((entry) => entry.isFile())
+        .map((entry) => path.relative(dir, path.join(entry.parentPath, entry.name)))
+        .sort()
+}
+
+describe('theme folder', () => {
+    it('ships none of the scaffold-default views, which would shadow the theme', () => {
+        for (const file of ['theme/views/layouts/layout.pug', 'theme/views/pages/default.pug']) {
+            expect(fs.existsSync(path.join(root, file)), file).toBe(false)
+        }
+    })
+
+    it('fills the seams', () => {
+        for (const seam of SEAMS) {
+            expect(fs.existsSync(path.join(root, 'theme/views/partials', `${seam}.pug`)), seam).toBe(true)
+        }
+    })
+
+    it('ships no CDN partial', () => {
+        expect(listFiles(path.join(root, 'theme')).filter((f) => path.basename(f) === CDN_PARTIAL)).toEqual([])
+    })
+
+    it.each(TEMPLATE_PLUGINS)('vendors the templates of the installed %s unchanged', (plugin) => {
+        const source = path.join(root, 'node_modules/@nera-static', plugin, 'views')
+        const vendor = path.join(root, 'theme/views/vendor', plugin)
+        const templates = listFiles(source).filter((f) => f.endsWith('.pug') && path.basename(f) !== CDN_PARTIAL)
+        expect(listFiles(vendor)).toEqual(templates)
+        for (const file of templates) {
+            expect(fs.readFileSync(path.join(vendor, file), 'utf-8'), file)
+                .toBe(fs.readFileSync(path.join(source, file), 'utf-8'))
+        }
+    })
+
+    it('ships the contact form\'s client script unchanged', () => {
+        const source = path.join(root, 'node_modules/@nera-static/plugin-contact-form/views/contact-form.js')
+        expect(fs.readFileSync(path.join(root, 'theme/assets/js/contact-form.js'), 'utf-8'))
+            .toBe(fs.readFileSync(source, 'utf-8'))
+    })
+})
