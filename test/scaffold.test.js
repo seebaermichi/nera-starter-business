@@ -4,6 +4,7 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { parse } from 'yaml'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const cli = path.join(root, 'node_modules', '@nera-static', 'nera', 'bin', 'nera.js')
@@ -58,12 +59,13 @@ const nera = (args, cwd) =>
 // Scaffold `name` from this repo with the devDependency CLI, offline: a
 // local starter path is read in place and --no-install skips npm. The site
 // then resolves the CLI, the theme and the plugins from this repo's
-// node_modules (they are this package's dependencies).
+// node_modules (they are this package's dependencies). Returns the site's
+// path and what `nera new` printed.
 function scaffold(name, extra = []) {
-    nera(['new', name, '--starter', root, '--yes', '--no-install', ...extra], tmp)
+    const out = nera(['new', name, '--starter', root, '--yes', '--no-install', ...extra], tmp)
     const site = path.join(tmp, name)
     fs.symlinkSync(path.join(root, 'node_modules'), path.join(site, 'node_modules'), 'dir')
-    return site
+    return { site, out }
 }
 
 const read = (dir, file) => fs.readFileSync(path.join(dir, file), 'utf-8')
@@ -119,17 +121,35 @@ describe('the sample pages', () => {
 
 describe('nera new --starter <this repo>', () => {
     let site
+    let out
 
     beforeAll(() => {
-        site = scaffold('site')
+        ({ site, out } = scaffold('site'))
     }, TIMEOUT)
 
     it('scaffolds a site that builds, checks and validates clean', () => {
         expectCleanBuild(site)
     }, TIMEOUT)
 
+    it('prints the README\'s whole First steps section, naming every placeholder (plan D6)', () => {
+        const readme = read(root, 'README.md')
+        // The last section: the CLI prints it from its heading to the end.
+        const steps = readme.slice(readme.indexOf('\n## First steps\n') + 1).trim()
+        expect(steps).not.toMatch(/\n#{1,2} /)
+        expect(out).toContain(steps)
+        for (const placeholder of [
+            'origin: https://example.com', '`business:` in `config/app.yaml`',
+            'recipient: hello@example.com', 'config/social-media-links.yaml',
+            'pages/imprint.md', 'pages/privacy.md',
+        ]) {
+            expect(steps, placeholder).toContain(placeholder)
+        }
+        // No fence: the CLI prints the section raw.
+        expect(steps).not.toContain('```')
+    })
+
     it('stays clean with every check rule on and promoted to error', () => {
-        const strict = scaffold('site-strict')
+        const { site: strict } = scaffold('site-strict')
         fs.writeFileSync(path.join(strict, 'config', 'validate.yaml'), STRICT_VALIDATE)
         expectCleanBuild(strict)
     }, TIMEOUT)
@@ -253,4 +273,57 @@ describe('nera new --starter <this repo>', () => {
             ...pkg.dependencies,
         })
     })
+})
+
+describe('nera new --starter <this repo> --name "Brot & Zeit" --lang de', () => {
+    let site
+
+    beforeAll(() => {
+        ({ site } = scaffold('site-de', ['--name', 'Brot & Zeit', '--lang', 'de']))
+    }, TIMEOUT)
+
+    it('sets name and lang and copies the English texts into a de entry', () => {
+        const app = read(site, 'config/app.yaml')
+        // Quoted: written by --name, not the starter's own unquoted line.
+        expect(app).toMatch(/^name: "Brot & Zeit"$/m)
+        expect(app).toMatch(/^lang: de$/m)
+        expect(app).toMatch(/^theme: business$/m)
+        expect(parse(app).translations.de).toEqual(parse(app).translations.en)
+    })
+
+    it('still builds, checks and validates clean', () => {
+        expectCleanBuild(site)
+        const html = read(site, 'public/index.html')
+        expect(html).toContain('<html lang="de">')
+        expect(html).toContain('&amp; Zeit</title>')
+        // `en` stays beside the copied `de`, but no English page exists: no
+        // one-item switch.
+        expect(html).not.toContain('lang-switch')
+    }, TIMEOUT)
+
+    it('renders German with the README\'s German texts alone, which cover every English key', () => {
+        const readme = read(root, 'README.md')
+        const de = readme.match(/```yaml\n( {4}de:\n[\s\S]*?)```/)[1]
+        const app = read(site, 'config/app.yaml')
+        // As the README says: replace the copied `de:` entry, keep `en:`.
+        fs.writeFileSync(path.join(site, 'config', 'app.yaml'), `${app.split(/^ {4}de:$/m)[0]}${de}`)
+        const { translations } = parse(read(site, 'config/app.yaml'))
+        expect(Object.keys(translations.de)).toEqual(Object.keys(translations.en))
+
+        expectCleanBuild(site)
+        const home = read(site, 'public/index.html')
+        expect(home).not.toContain('lang-switch')
+        expect(home).toContain('Zum Inhalt springen')
+        expect(home).toContain('aria-label="Hauptnavigation"')
+        expect(home).toContain('<dt class="opening-hours__days">Mo–Fr</dt>')
+        expect(home).toContain('<p class="opening-hours__note">An Feiertagen geschlossen.</p>')
+        expect(home).toContain('>Impressum</a>')
+
+        const contact = read(site, 'public/contact.html')
+        for (const label of ['Ihr Name', 'Ihre E-Mail-Adresse', 'Ich habe die Datenschutzerklärung gelesen', 'Nachricht senden']) {
+            expect(contact, label).toContain(label)
+        }
+        expect(contact).toContain('<a href="/privacy.html">Datenschutzerklärung</a>')
+        expect(contact).not.toMatch(/Your name|Send message|privacy notice/)
+    }, TIMEOUT)
 })
