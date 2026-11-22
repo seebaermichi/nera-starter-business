@@ -70,6 +70,16 @@ function scaffold(name, extra = []) {
 
 const read = (dir, file) => fs.readFileSync(path.join(dir, file), 'utf-8')
 
+// The schema.org days of the theme's opening-hours rows (config/app.yaml).
+const SCHEMA_DAYS = {
+    'Mon–Fri': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+    Sat: ['Saturday'],
+}
+
+// The opening tag plugin-structured-data's view writes, and its JSON body.
+const LD_JSON_TAG = '<script type="application/ld+json">'
+const LD_JSON = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/g
+
 // Every file below `dir`, as paths relative to it.
 function walk(dir, base = dir) {
     return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -140,7 +150,8 @@ describe('nera new --starter <this repo>', () => {
         for (const placeholder of [
             'origin: https://example.com', '`business:` in `config/app.yaml`',
             'recipient: hello@example.com', 'config/social-media-links.yaml',
-            'pages/imprint.md', 'pages/privacy.md', 'theme/assets/favicon.ico',
+            'config/structured-data.yaml', 'pages/imprint.md', 'pages/privacy.md',
+            'theme/assets/favicon.ico',
         ]) {
             expect(steps, placeholder).toContain(placeholder)
         }
@@ -218,16 +229,77 @@ describe('nera new --starter <this repo>', () => {
         expect(contact).toContain('<script src="/js/contact-form.js"></script>')
     })
 
-    it('makes no third-party request and ships only the contact-form script', () => {
+    it('describes the business in one JSON-LD block in every page\'s head, matching what the page shows', () => {
+        const { name, business } = parse(read(site, 'config/app.yaml'))
+        const origin = 'https://example.com'
+        // The legal pages are `robots: noindex`, but they still describe the
+        // same business: noindex keeps them out of the index, not unread.
+        for (const file of PAGES) {
+            const page = read(site, `public/${file}`)
+            const blocks = [...page.matchAll(LD_JSON)]
+            expect(blocks, file).toHaveLength(1)
+            expect(page.match(/<head>[\s\S]*<\/head>/)[0], file).toContain(LD_JSON_TAG)
+
+            const { '@context': context, '@graph': graph, ...rest } = JSON.parse(blocks[0][1])
+            expect(context, file).toBe('https://schema.org')
+            expect(rest, file).toEqual({})
+            expect(graph.map((node) => node['@id']), file).toEqual([`${origin}/#entity`, `${origin}/#website`])
+            const [entity, website] = graph
+
+            expect(entity, file).toEqual({
+                '@id': `${origin}/#entity`,
+                '@type': 'LocalBusiness',
+                name,
+                url: `${origin}/`,
+                image: `${origin}/images/hero.jpg`,
+                telephone: business.phone,
+                address: {
+                    '@type': 'PostalAddress',
+                    streetAddress: business.street,
+                    postalCode: business.postal_code,
+                    addressLocality: business.city,
+                    addressCountry: business.country,
+                },
+                openingHoursSpecification: business.hours.filter((row) => !row.closed).map((row) => ({
+                    '@type': 'OpeningHoursSpecification',
+                    dayOfWeek: SCHEMA_DAYS[row.days].map((day) => `https://schema.org/${day}`),
+                    opens: `${row.opens}:00`,
+                    closes: `${row.closes}:00`,
+                })),
+                priceRange: '€€',
+            })
+            expect(fs.existsSync(path.join(site, 'public', new URL(entity.image).pathname)), file).toBe(true)
+
+            // The footer shows the address, the phone and the hours on every page.
+            expect(page, file).toContain(`<span class="address__line">${entity.address.streetAddress}</span>`)
+            expect(page, file).toContain(`>${entity.telephone}</a>`)
+            for (const { opens, closes } of entity.openingHoursSpecification) {
+                const [from, to] = [opens, closes].map((time) => time.slice(0, 5))
+                expect(page, file).toContain(`<time datetime="${from}">${from}</time> – <time datetime="${to}">${to}</time>`)
+            }
+
+            expect(website, file).toEqual({
+                '@id': `${origin}/#website`,
+                '@type': 'WebSite',
+                name,
+                url: `${origin}/`,
+                inLanguage: 'en',
+                publisher: { '@id': `${origin}/#entity` },
+            })
+        }
+    })
+
+    it('makes no third-party request and ships only the JSON-LD and the contact-form script', () => {
         const pub = path.join(site, 'public')
         const html = walk(pub).filter((f) => f.endsWith('.html'))
         expect(html.length).toBe(PAGES.length)
         for (const file of html) {
             const page = read(pub, file)
             const scripts = [...page.matchAll(/<script\b[^>]*>/gi)].map(([tag]) => tag)
+            // The JSON-LD is data, not code: inline, no src, in every page.
             const expected = file === 'contact.html'
-                ? ['<script type="application/json" data-contact-config>', '<script src="/js/contact-form.js">']
-                : []
+                ? [LD_JSON_TAG, '<script type="application/json" data-contact-config>', '<script src="/js/contact-form.js">']
+                : [LD_JSON_TAG]
             expect(scripts, file).toEqual(expected)
             expect(page, file).not.toMatch(/<(?:link|img|source|iframe|video|audio)\b[^>]*\s(?:href|src|srcset)="(?:https?:)?\/\//i)
         }
@@ -308,6 +380,11 @@ describe('nera new --starter <this repo> --name "Brot & Zeit" --lang de', () => 
         // `en` stays beside the copied `de`, but no English page exists: no
         // one-item switch.
         expect(html).not.toContain('lang-switch')
+        // The WebSite node follows `lang` and the name --name wrote.
+        const website = JSON.parse([...html.matchAll(LD_JSON)][0][1])['@graph'][1]
+        expect(website['@type']).toBe('WebSite')
+        expect(website.inLanguage).toBe('de')
+        expect(website.name).toBe('Brot & Zeit')
     }, TIMEOUT)
 
     it('renders German with the README\'s German texts alone, which cover every English key', () => {

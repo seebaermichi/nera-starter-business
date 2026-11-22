@@ -73,10 +73,12 @@ describe('package.json starter contract', () => {
 })
 
 // The plugins whose templates the starter ships as vendor copies.
-const TEMPLATE_PLUGINS = ['plugin-contact-form', 'plugin-images', 'plugin-navigation', 'plugin-social-media-links']
+const TEMPLATE_PLUGINS = [
+    'plugin-contact-form', 'plugin-images', 'plugin-navigation', 'plugin-social-media-links', 'plugin-structured-data',
+]
 
 // The seams the starter fills: §S3.2 of ROADMAP-themes.md plus the shared ones.
-const SEAMS = ['hero-media', 'card-media', 'contact-form', 'nav-main', 'footer-extra']
+const SEAMS = ['hero-media', 'card-media', 'contact-form', 'nav-main', 'footer-extra', 'head-extra']
 
 // Loads Font Awesome from a CDN, which the privacy check would flag.
 const CDN_PARTIAL = 'fontawesome-cdn-link.pug'
