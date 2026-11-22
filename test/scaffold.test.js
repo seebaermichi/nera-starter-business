@@ -356,17 +356,21 @@ describe('nera new --starter <this repo>', () => {
     })
 })
 
-describe('nera new --starter <this repo> --name "Brot & Zeit" --lang de', () => {
+// A name other than the starter's own "Brot & Zeit", so the assertions prove
+// --name renamed the site, and with an `&` that YAML and HTML must escape.
+const NEW_NAME = 'My Bakery & Co'
+
+describe(`nera new --starter <this repo> --name "${NEW_NAME}" --lang de`, () => {
     let site
 
     beforeAll(() => {
-        ({ site } = scaffold('site-de', ['--name', 'Brot & Zeit', '--lang', 'de']))
+        ({ site } = scaffold('site-de', ['--name', NEW_NAME, '--lang', 'de']))
     }, TIMEOUT)
 
     it('sets name and lang and copies the English texts into a de entry', () => {
         const app = read(site, 'config/app.yaml')
         // Quoted: written by --name, not the starter's own unquoted line.
-        expect(app).toMatch(/^name: "Brot & Zeit"$/m)
+        expect(app).toMatch(/^name: "My Bakery & Co"$/m)
         expect(app).toMatch(/^lang: de$/m)
         expect(app).toMatch(/^theme: business$/m)
         expect(parse(app).translations.de).toEqual(parse(app).translations.en)
@@ -376,15 +380,18 @@ describe('nera new --starter <this repo> --name "Brot & Zeit" --lang de', () => 
         expectCleanBuild(site)
         const html = read(site, 'public/index.html')
         expect(html).toContain('<html lang="de">')
-        expect(html).toContain('&amp; Zeit</title>')
+        expect(html).toContain('My Bakery &amp; Co</title>')
         // `en` stays beside the copied `de`, but no English page exists: no
         // one-item switch.
         expect(html).not.toContain('lang-switch')
-        // The WebSite node follows `lang` and the name --name wrote.
-        const website = JSON.parse([...html.matchAll(LD_JSON)][0][1])['@graph'][1]
-        expect(website['@type']).toBe('WebSite')
+        // Both nodes follow the name --name wrote (config/structured-data.yaml
+        // has no entity.name), and the WebSite node follows `lang`.
+        const [entity, website] = JSON.parse([...html.matchAll(LD_JSON)][0][1])['@graph']
+        expect(entity['@id']).toBe('https://example.com/#entity')
+        expect(entity.name).toBe(NEW_NAME)
+        expect(website['@id']).toBe('https://example.com/#website')
+        expect(website.name).toBe(NEW_NAME)
         expect(website.inLanguage).toBe('de')
-        expect(website.name).toBe('Brot & Zeit')
     }, TIMEOUT)
 
     it('renders German with the README\'s German texts alone, which cover every English key', () => {

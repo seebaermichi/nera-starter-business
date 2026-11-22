@@ -106,8 +106,8 @@ file named in steps 1 to 6 marks its placeholders as such.
    `translations:`.
 3. Replace the same facts in `config/structured-data.yaml`, which does not
    read `business:`: `type` (`LocalBusiness` or a subtype such as `Bakery`),
-   `name` (which `nera new --name` does not set), `address`, `telephone`,
-   `opening_hours`, `image` and `priceRange`.
+   `address`, `telephone`, `opening_hours`, `image` and `priceRange`. The
+   business's name is `name` in `config/app.yaml`.
    Keep them in step with `business:`, so the page and its structured data
    say the same.
 4. Replace `recipient: hello@example.com` in `config/contact-form.yaml` with

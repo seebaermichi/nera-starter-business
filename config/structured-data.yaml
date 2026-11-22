@@ -11,7 +11,8 @@ entity:
     # A schema.org type: LocalBusiness, or a more precise subtype such as
     # Bakery, Restaurant, HairSalon or ProfessionalService.
     type: LocalBusiness
-    name: Brot & Zeit
+    # No `name`: the entity is named after `name` in config/app.yaml, which
+    # `nera new --name` sets. Add one only if the two names differ.
     image: /images/hero.jpg
     telephone: '+49 30 1234567'
     address:

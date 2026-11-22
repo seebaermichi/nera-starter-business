@@ -231,7 +231,6 @@ describe('site config', () => {
         expect(rest).toEqual({})
         expect(entity).toEqual({
             type: 'LocalBusiness',
-            name: app.name,
             image: '/images/hero.jpg',
             telephone: app.business.phone,
             address: {
@@ -246,5 +245,10 @@ describe('site config', () => {
             properties: { priceRange: '€€' },
         })
         expect(fs.existsSync(path.join(root, 'theme/assets', entity.image))).toBe(true)
+    })
+
+    it('leaves the entity\'s name to `name` in config/app.yaml, which `nera new --name` sets', () => {
+        const { entity } = readConfig('structured-data')
+        expect(entity).not.toHaveProperty('name')
     })
 })

@@ -9,8 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
--   Schema.org structured data: a scaffolded site depends on `@nera-static/plugin-structured-data` ^1.0.1 and writes one JSON-LD block into the `<head>` of every page, describing the business as a `LocalBusiness` (name, address, phone, opening hours, image, price range) and the site as a `WebSite` in the site's language. `nera build --check` and `nera validate` stay without findings, also with every check rule promoted to error and with `--lang de`.
--   `config/structured-data.yaml`: the business's placeholder facts, the same as under `business:` in `config/app.yaml`, which the plugin does not read; `config/plugin-order.yaml` runs the plugin last, as its README asks.
+-   Schema.org structured data: a scaffolded site depends on `@nera-static/plugin-structured-data` ^1.1.0 and writes one JSON-LD block into the `<head>` of every page, describing the business as a `LocalBusiness` (name, address, phone, opening hours, image, price range) and the site as a `WebSite` in the site's language. `nera build --check` and `nera validate` stay without findings, also with every check rule promoted to error and with `--lang de`.
+-   `config/structured-data.yaml`: the business's placeholder facts, the same as under `business:` in `config/app.yaml`, which the plugin does not read; no `entity.name`, so the entity and the `WebSite` are named after `name` in `config/app.yaml` and `nera new --name` renames both; `config/plugin-order.yaml` runs the plugin last, as its README asks.
 -   `theme/views/partials/head-extra.pug` fills the theme's `head-extra` seam with the plugin's view; `theme/views/vendor/plugin-structured-data/` is its published template, unchanged.
 -   README: a First steps item naming the values of `config/structured-data.yaml` to replace and keep in step with `business:`.
 
