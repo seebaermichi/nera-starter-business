@@ -14,6 +14,7 @@ const DEPENDENCIES = [
     '@nera-static/plugin-navigation',
     '@nera-static/plugin-sitemap',
     '@nera-static/plugin-social-media-links',
+    '@nera-static/plugin-structured-data',
     '@nera-static/theme-business',
 ]
 
@@ -29,7 +30,7 @@ describe('package.json starter contract', () => {
         expect(pkg.keywords).toEqual(['nera', 'nera-starter', 'static-site-generator', 'starter', 'business'])
     })
 
-    it('depends on the business theme and its five plugins, with caret ranges', () => {
+    it('depends on the business theme and its six plugins, with caret ranges', () => {
         expect(Object.keys(pkg.dependencies).sort()).toEqual(DEPENDENCIES)
         for (const range of Object.values(pkg.dependencies)) expect(range).toMatch(/^\^\d+\.\d+\.\d+$/)
         expect(pkg.peerDependencies).toBeUndefined()
@@ -123,6 +124,9 @@ describe('theme folder', () => {
     })
 })
 
+// The days of app.business.hours in the plugin's opening_hours notation.
+const OPENING_DAYS = { 'Mon–Fri': 'Mo-Fr', Sat: 'Sa' }
+
 /** Parses `config/<name>.yaml`. */
 function readConfig(name) {
     return parse(fs.readFileSync(path.join(root, 'config', `${name}.yaml`), 'utf-8'))
@@ -214,5 +218,31 @@ describe('site config', () => {
         const social = readConfig('social-media-links')
         expect(social.open_in_new_tab).toBe(false)
         expect(social.social_media_links).toHaveLength(1)
+    })
+
+    it('runs plugin-structured-data last, in the shape core reads', () => {
+        expect(readConfig('plugin-order')).toEqual({ 'plugin-order': [{ end: ['plugin-structured-data'] }] })
+    })
+
+    it('describes the business as a LocalBusiness that mirrors app.business (plan D2, D3)', () => {
+        const { entity, ...rest } = readConfig('structured-data')
+        expect(rest).toEqual({})
+        expect(entity).toEqual({
+            type: 'LocalBusiness',
+            name: app.name,
+            image: '/images/hero.jpg',
+            telephone: app.business.phone,
+            address: {
+                streetAddress: app.business.street,
+                postalCode: app.business.postal_code,
+                addressLocality: app.business.city,
+                addressCountry: app.business.country,
+            },
+            opening_hours: app.business.hours
+                .filter((row) => !row.closed)
+                .map((row) => `${OPENING_DAYS[row.days]} ${row.opens}-${row.closes}`),
+            properties: { priceRange: '€€' },
+        })
+        expect(fs.existsSync(path.join(root, 'theme/assets', entity.image))).toBe(true)
     })
 })

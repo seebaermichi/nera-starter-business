@@ -1,0 +1,28 @@
+# @nera-static/plugin-structured-data: the schema.org JSON-LD in the <head> of
+# every page, which tells search engines and AI assistants who runs the site.
+# Placeholders: replace every value before you deploy, together with the
+# matching ones in `business:` in config/app.yaml (this file does not read
+# them). The full list of keys is in the plugin's README.
+#
+# The site URL comes from `origin` in config/app.yaml; relative URLs below
+# are made absolute against it.
+
+entity:
+    # A schema.org type: LocalBusiness, or a more precise subtype such as
+    # Bakery, Restaurant, HairSalon or ProfessionalService.
+    type: LocalBusiness
+    name: Brot & Zeit
+    image: /images/hero.jpg
+    telephone: '+49 30 1234567'
+    address:
+        streetAddress: Bergstraße 12
+        postalCode: '10115'
+        addressLocality: Berlin
+        addressCountry: Germany
+    # Days Mo Tu We Th Fr Sa Su, times hh:mm; days not listed are closed.
+    opening_hours:
+        - Mo-Fr 07:00-18:00
+        - Sa 08:00-14:00
+    # Copied verbatim into the entity node.
+    properties:
+        priceRange: €€
